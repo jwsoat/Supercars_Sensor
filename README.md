@@ -49,6 +49,4 @@ See `automations_example.yaml` for ready-to-use automations:
 
 ## Data Source
 
-Live timing data is sourced from the publicly accessible Natsoft timing server at `server.natsoft.com.au:8080/LiveMeeting/V8SUPER`.
-
 The at-circuit audio stream link points to [supercars.fm](https://supercars.fm), which is geo-locked to the race venue and available to attendees on-site.
