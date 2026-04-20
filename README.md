@@ -15,7 +15,7 @@ A Home Assistant custom integration that pulls live timing data from the Natsoft
 ## Installation (HACS)
 
 1. In HACS → Integrations → ⋮ → Custom repositories
-2. Add `https://github.com/yourusername/ha-supercars` as **Integration**
+2. Add `https://github.com/jwsoat/Supercars_Sensor` as **Integration**
 3. Install **Supercars Championship**
 4. Restart Home Assistant
 5. Settings → Integrations → Add → **Supercars Championship**
