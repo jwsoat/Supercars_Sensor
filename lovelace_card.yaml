@@ -1,0 +1,176 @@
+# Supercars Championship — Premium Lovelace Dashboard
+# Requires: custom:mushroom-card, custom:button-card, custom:tabbed-card (optional but recommended for tab support, here we use conditional cards for a similar effect without extra plugins or we can just use vertical stack)
+#
+# Replace the contents of your existing lovelace card with this configuration.
+
+type: vertical-stack
+cards:
+  # ── Header ──────────────────────────────────────────────────────────────────
+  - type: custom:mushroom-template-card
+    primary: >
+      {{ states('sensor.supercars_round') or 'No Active Round' }}
+    secondary: >
+      {{ states('sensor.supercars_session') or 'Session inactive' }}
+    icon: mdi:racing-helmet
+    icon_color: >
+      {% set flag = states('sensor.supercars_flag_state') %}
+      {% if flag == 'green_flag' %}green
+      {% elif flag in ['yellow_flag', 'virtual_safety_car', 'safety_car'] %}amber
+      {% elif flag == 'red_flag' %}red
+      {% elif flag == 'chequered_flag' %}grey
+      {% else %}blue{% endif %}
+    badge_icon: >
+      {% set flag = states('sensor.supercars_flag_state') %}
+      {% if flag == 'safety_car' %}mdi:car-emergency
+      {% elif flag == 'red_flag' %}mdi:flag
+      {% elif flag == 'chequered_flag' %}mdi:flag-checkered
+      {% else %}{% endif %}
+
+  # ── Live Timing ─────────────────────────────────────────────────────────────
+  - type: conditional
+    conditions:
+      - entity: sensor.supercars_flag_state
+        state_not: 'inactive'
+    card:
+      type: vertical-stack
+      cards:
+        - type: custom:mushroom-template-card
+          primary: >
+            P1 — {{ states('sensor.supercars_race_leader') or '—' }}
+          secondary: >
+            Car #{{ state_attr('sensor.supercars_race_leader', 'car_number') or '?' }}
+            · {{ state_attr('sensor.supercars_race_leader', 'team') or 'Unknown' }}
+          icon: mdi:trophy
+          icon_color: amber
+          picture: >
+            {{ state_attr('sensor.supercars_race_leader', 'entity_picture') }}
+
+        - type: custom:mushroom-template-card
+          primary: >
+            Lap {{ states('sensor.supercars_current_lap') or '—' }} / {{ state_attr('sensor.supercars_current_lap', 'total_laps') or '?' }}
+          secondary: >
+            Time remaining: {{ states('sensor.supercars_time_remaining') or '—' }}
+          icon: mdi:counter
+          icon_color: indigo
+
+        - type: glance
+          title: Track Conditions
+          entities:
+            - entity: sensor.supercars_air_temperature
+              name: Air
+            - entity: sensor.supercars_track_temperature
+              name: Track
+
+  # ── Latest Results ──────────────────────────────────────────────────────────
+  - type: conditional
+    conditions:
+      - entity: sensor.supercars_flag_state
+        state: 'inactive'
+    card:
+      type: vertical-stack
+      cards:
+        - type: markdown
+          title: Latest Results
+          content: >
+            | Pos | Driver | Car | Time / Gap |
+            |:---:|:---|:---:|:---|
+            {%- set results = state_attr('sensor.supercars_latest_results', 'finishers') or [] %}
+            {%- for r in results %}
+            | {{ r.position }} | **{{ r.driver }}** | {{ r.car }} | {{ r.time }} |
+            {%- endfor %}
+
+  # ── Driver Standings ────────────────────────────────────────────────────────
+  - type: markdown
+    title: Championship Standings
+    content: >
+      | Pos | Driver | Points | Gap |
+      |:---:|:---|:---:|:---|
+      {%- set drivers = state_attr('sensor.supercars_driver_standings', 'drivers') or [] %}
+      {%- for d in drivers %}
+      | {{ d.position }} | **{{ d.driver }}** | {{ d.points }} | {{ d.gap }} |
+      {%- endfor %}
+
+  # ── Next Session & Schedule ─────────────────────────────────────────────────
+  - type: custom:mushroom-template-card
+    primary: >
+      {{ state_attr('sensor.supercars_next_session', 'session') or 'No upcoming sessions' }}
+    secondary: >
+      {% set t = state_attr('sensor.supercars_next_session', 'start_time') %}
+      {% set e = state_attr('sensor.supercars_next_session', 'event') %}
+      {% if e %}{{ e }} · {% endif %}{% if t %}🕐 {{ t }}{% endif %}
+    icon: mdi:clock-start
+    icon_color: red
+
+  - type: glance
+    show_name: true
+    show_state: true
+    entities:
+      - entity: sensor.supercars_next_practice
+        name: Practice
+      - entity: sensor.supercars_next_qualifying
+        name: Quali
+      - entity: sensor.supercars_next_race
+        name: Race
+
+  # ── Quick Links ─────────────────────────────────────────────────────────────
+  - type: horizontal-stack
+    cards:
+      - type: custom:button-card
+        name: Live Timing
+        icon: mdi:timer-outline
+        tap_action:
+          action: url
+          url_path: "https://supercars.com/live-timing"
+        styles:
+          card:
+            - background: "#1a1a2e"
+            - border: "1px solid #e94560"
+            - border-radius: 12px
+            - padding: 8px
+          name:
+            - color: "#ffffff"
+            - font-size: 13px
+            - font-weight: bold
+      - type: custom:button-card
+        name: SuperView
+        icon: mdi:television-play
+        tap_action:
+          action: url
+          url_path: "https://supercars.com/superview"
+        styles:
+          card:
+            - background: "#1a1a2e"
+            - border: "1px solid #e94560"
+            - border-radius: 12px
+            - padding: 8px
+          name:
+            - color: "#ffffff"
+            - font-size: 13px
+            - font-weight: bold
+
+  # ── Latest News ─────────────────────────────────────────────────────────────
+  - type: custom:button-card
+    entity: sensor.supercars_latest_news
+    name: Latest News
+    label: "[[[ return entity.state ]]]"
+    show_label: true
+    show_icon: true
+    icon: mdi:newspaper-variant-outline
+    tap_action:
+      action: url
+      url_path: "[[[ return entity.attributes.latest_url ]]]"
+    styles:
+      card:
+        - background: "#1a1a2e"
+        - border: "1px solid #333355"
+        - border-radius: 12px
+        - padding: 12px
+      name:
+        - color: "#aaaacc"
+        - font-size: 11px
+        - text-transform: uppercase
+      label:
+        - color: "#ffffff"
+        - font-size: 13px
+        - white-space: normal
+        - text-align: left

@@ -1,0 +1,111 @@
+# Supercars Championship — Example Automations
+# Add these to your automations.yaml or via the UI
+
+# ── Race starting in 15 minutes ──────────────────────────────────────────────
+- alias: "Supercars: Race Starting Soon"
+  description: Alert 15 minutes before a race starts
+  trigger:
+    - platform: template
+      value_template: >
+        {% set secs = state_attr('sensor.supercars_next_race', 'countdown_seconds') %}
+        {{ secs is not none and secs | int <= 900 and secs | int > 870 }}
+  action:
+    - service: notify.mobile_app_your_phone
+      data:
+        title: "🏎 Race in 15 minutes"
+        message: >
+          {{ state_attr('sensor.supercars_next_race', 'session') }} starts at
+          {{ state_attr('sensor.supercars_next_race', 'start_time') }}
+
+# ── Qualifying starting in 10 minutes ────────────────────────────────────────
+- alias: "Supercars: Qualifying Starting Soon"
+  trigger:
+    - platform: template
+      value_template: >
+        {% set secs = state_attr('sensor.supercars_next_qualifying', 'countdown_seconds') %}
+        {{ secs is not none and secs | int <= 600 and secs | int > 570 }}
+  action:
+    - service: notify.mobile_app_your_phone
+      data:
+        title: "⏱ Qualifying in 10 minutes"
+        message: >
+          {{ state_attr('sensor.supercars_next_qualifying', 'session') }} at
+          {{ state_attr('sensor.supercars_next_qualifying', 'start_time') }}
+
+
+- alias: "Supercars: Safety Car Deployed"
+  description: Notify when a safety car or VSC is deployed
+  trigger:
+    - platform: state
+      entity_id: sensor.supercars_flag_state
+      to:
+        - safety_car
+        - virtual_safety_car
+  action:
+    - service: notify.mobile_app_your_phone
+      data:
+        title: "🚨 Safety Car"
+        message: >
+          Safety car deployed at
+          {{ states('sensor.supercars_round') }}.
+          Leader: {{ states('sensor.supercars_race_leader') }}
+
+# ── Red flag ──────────────────────────────────────────────────────────────────
+- alias: "Supercars: Red Flag"
+  trigger:
+    - platform: state
+      entity_id: sensor.supercars_flag_state
+      to: red_flag
+  action:
+    - service: notify.mobile_app_your_phone
+      data:
+        title: "🔴 Red Flag"
+        message: "Race stopped at {{ states('sensor.supercars_round') }}."
+
+# ── Race leader change ────────────────────────────────────────────────────────
+- alias: "Supercars: Lead Change"
+  description: Notify whenever the race leader changes
+  trigger:
+    - platform: state
+      entity_id: sensor.supercars_race_leader
+  condition:
+    - condition: template
+      value_template: >
+        {{ trigger.from_state.state not in ['unknown', 'unavailable', 'None']
+           and trigger.to_state.state not in ['unknown', 'unavailable', 'None'] }}
+  action:
+    - service: notify.mobile_app_your_phone
+      data:
+        title: "🏁 Lead Change"
+        message: >
+          {{ trigger.to_state.state }} now leads
+          at {{ states('sensor.supercars_round') }}
+          (was {{ trigger.from_state.state }})
+
+# ── Session start ─────────────────────────────────────────────────────────────
+- alias: "Supercars: Session Started"
+  trigger:
+    - platform: state
+      entity_id: sensor.supercars_flag_state
+      from: inactive
+  action:
+    - service: notify.mobile_app_your_phone
+      data:
+        title: "🏎 Session Live"
+        message: >
+          {{ states('sensor.supercars_session') }} has started at
+          {{ states('sensor.supercars_round') }}.
+
+# ── Race finished ─────────────────────────────────────────────────────────────
+- alias: "Supercars: Chequered Flag"
+  trigger:
+    - platform: state
+      entity_id: sensor.supercars_flag_state
+      to: chequered_flag
+  action:
+    - service: notify.mobile_app_your_phone
+      data:
+        title: "🏁 Chequered Flag"
+        message: >
+          {{ states('sensor.supercars_race_leader') }} wins at
+          {{ states('sensor.supercars_round') }}!
