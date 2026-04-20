@@ -2,7 +2,7 @@
 
 A Home Assistant custom integration that pulls live timing data from the Natsoft V8 Supercars feed, giving you real-time race sensors, automations, and a dashboard card.
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=jwsoat&repository=Supercars+Championship&category=Integration)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=jwsoat&repository=Supercars_Sensor&category=Integration)
 
 ## Features
 
