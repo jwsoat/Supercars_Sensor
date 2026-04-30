@@ -1,39 +1,36 @@
 # Supercars Integration Fixes & Enhancements
 
-This implementation plan addresses the current issues with the Supercars Home Assistant integration, specifically regarding incorrect standings data and broken schedule sensors.
+This implementation plan tracks fixes to the Supercars Home Assistant integration.
 
 ## Problem Statement
 
-1. **Incorrect Standings & Results:** The `sensor.supercars_driver_standings`, `team_standings`, and `latest_results` are currently displaying incorrect, dummy data. This is because `supercars.com` is a dynamic single-page application (SPA) and does not expose this data in standard HTML or a public JSON API that `aiohttp` can easily parse.
-2. **Unavailable Schedule Sensors:** The `next_practice`, `next_qualifying`, `next_race`, and `next_session` sensors are showing as unavailable. The integration was attempting to scrape a specific news article URL for the Tasmania schedule that no longer exists or lacks the expected markdown tables. 
-3. **Missing Next Event:** The integration needs to accurately grab the track schedule for the next event (Tasmania Super 440). Specifically, the next practice session is scheduled for **22 May 2026 at 4:05pm AEST**.
+1. **Incorrect Standings & Results:** `sensor.supercars_driver_standings`, `team_standings`, and `latest_results` were displaying dummy data because supercars.com is a Next.js App Router SPA with no documented public API.
+2. **Unavailable Schedule Sensors:** `next_practice`, `next_qualifying`, `next_race`, `next_session` were unavailable because the old scraper targeted a news article URL that no longer exists.
+3. **Missing Next Event:** Tasmania Super 440 — Practice 1 is on **22 May 2026 at 4:05pm AEST**.
 
-## User Review Required
+## Architectural Decisions
 
-> [!WARNING]
-> Because `supercars.com` actively hides its API and uses heavy JavaScript rendering, building a reliable web scraper purely in Home Assistant (Python `aiohttp`) is highly prone to breaking. Please review the proposed solutions below and let me know how you would like to proceed.
+- **Schedule:** local JSON file (`schedule_2026.json`) is the source of truth; web scraping of `supercars.com/news/...` is a fallback.
+- **Standings (Option B):** reverse-engineered API access. Tries speculative REST endpoints, then a Next.js RSC fetch (`RSC: 1` header) for the App Router flight payload, then HTML scraping that covers `__NEXT_DATA__`, `window.__*STATE__`, `<script type="application/json">`, and `self.__next_f.push(...)` flight chunks. Stale-cache fallback; never returns dummy data.
+- **Results (Options B + C):** during a live Natsoft session, results come straight from the live timing feed (Option C). Outside sessions, the same Option B chain as standings is used.
 
-## Proposed Changes
+## Status
 
-### 1. Reliable Schedule Architecture
-Instead of relying on fragile web scraping of news articles for the session schedule, we will move to a local, structured schedule file.
+| Area | Status |
+|------|--------|
+| Tasmania schedule (Practice 1 → Race 3) | Done — `schedule_2026.json` |
+| `schedule_coordinator` reads local JSON first | Done |
+| `standings_coordinator` Option B chain | Done |
+| `results_coordinator` Option C (Natsoft live) | Done |
+| `results_coordinator` Option B (idle) | Done |
+| Next.js flight chunk parser (`__next_f.push`) | Done — `spa_extract.py` |
+| RSC fetch fallback | Done |
+| Sensor data-mutation bug (`entity_picture` leak) | Done |
+| Calendar rounds 6–14 session times | **Pending** — empty `sessions: []` slots in `schedule_2026.json`; will be populated when each round's official schedule is published |
 
-- **[NEW] `schedule_2026.json`:** Create a local JSON file within the `custom_components/supercars` directory. This will house the complete schedule for upcoming events.
-- **[MODIFY] `schedule_coordinator.py`:** Update the coordinator to read from this local JSON file instead of fetching from the web.
-- **Tasmania Schedule:** I will manually seed the JSON file with the Tasmania Super 440 schedule, ensuring `next_practice` explicitly triggers for **22 May 2026 at 4:05pm AEST**.
+## Verification
 
-### 2. Standings & Results Architecture
-Since native scraping is unreliable, we have a few options for fixing the incorrect standings data. **Please let me know which option you prefer:**
-
-- **Option A (Local Managed File):** Similar to the schedule, we create a `standings.json` file that you can manually update after race weekends. The integration reads this file instantly. Reliable, but manual.
-- **Option B (Reverse Engineer API):** I can write a Python script to attempt to reverse-engineer the specific GraphQL or hidden API endpoints used by the Supercars frontend. If found, we can hardcode this API endpoint. *(Note: This may still break if they change their API keys/structure).*
-- **Option C (Natsoft Fallback):** We use the existing `NatsoftCoordinator` (which works for live timing) to pull the final results of the session, though this won't provide overarching Championship Standings.
-
-## Verification Plan
-
-### Automated Tests
-- N/A for custom components, but code will be validated against Home Assistant component rules.
-
-### Manual Verification
-- After implementation, the `next_session` sensor should immediately populate with "Practice 1" and start counting down to May 22, 2026.
-- The Standings sensors will display correct data based on the chosen architectural option above.
+- `next_session` populates with "Practice 1" and counts down to **22 May 2026 16:05 AEST**.
+- During an active Natsoft session, `latest_results` shows live top-10 with `source: natsoft_live`.
+- Outside sessions, the integration probes API → RSC → HTML in order; each layer is logged at INFO when it succeeds.
+- A unit-style smoke test (`python3` against synthetic JSON + flight chunks) confirms the parser detects standings/results shapes and gracefully returns nothing on the live SPA HTML, where the data is fetched client-side.
