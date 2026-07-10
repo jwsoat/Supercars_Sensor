@@ -11,6 +11,7 @@ from .news_coordinator import NewsCoordinator
 from .schedule_coordinator import ScheduleCoordinator
 from .standings_coordinator import StandingsCoordinator
 from .results_coordinator import ResultsCoordinator
+from .weather_coordinator import WeatherCoordinator
 
 PLATFORMS = [Platform.SENSOR, Platform.CALENDAR]
 
@@ -22,12 +23,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     schedule_coordinator = ScheduleCoordinator(hass)
     standings_coordinator = StandingsCoordinator(hass)
     results_coordinator = ResultsCoordinator(hass, timing_coordinator)
+    weather_coordinator = WeatherCoordinator(hass)
 
     await timing_coordinator.async_config_entry_first_refresh()
     await news_coordinator.async_config_entry_first_refresh()
     await schedule_coordinator.async_config_entry_first_refresh()
     await standings_coordinator.async_config_entry_first_refresh()
     await results_coordinator.async_config_entry_first_refresh()
+    await weather_coordinator.async_config_entry_first_refresh()
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {
         "timing":   timing_coordinator,
@@ -35,6 +38,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "schedule": schedule_coordinator,
         "standings": standings_coordinator,
         "results":   results_coordinator,
+        "weather":   weather_coordinator,
     }
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

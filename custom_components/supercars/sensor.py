@@ -13,6 +13,7 @@ from .news_coordinator import NewsCoordinator
 from .schedule_coordinator import ScheduleCoordinator
 from .standings_coordinator import StandingsCoordinator
 from .results_coordinator import ResultsCoordinator
+from .weather_coordinator import WeatherCoordinator
 
 def _driver_picture(name: str) -> str:
     return f"https://www.supercars.com/images/drivers/{name.lower().replace(' ', '-')}.jpg"
@@ -27,8 +28,6 @@ TIMING_SENSOR_DESCRIPTIONS: list[SensorEntityDescription] = [
     SensorEntityDescription(key="session_name",           name="Session",           icon="mdi:racing-helmet"),
     SensorEntityDescription(key="round_name",             name="Round",             icon="mdi:map-marker"),
     SensorEntityDescription(key="session_time_remaining", name="Time Remaining",    icon="mdi:timer-outline"),
-    SensorEntityDescription(key="weather_temp",           name="Air Temperature",   icon="mdi:thermometer",      native_unit_of_measurement="°C"),
-    SensorEntityDescription(key="weather_track",          name="Track Temperature", icon="mdi:road",             native_unit_of_measurement="°C"),
 ]
 
 # ── Schedule countdown sensors ────────────────────────────────────────────────
@@ -53,9 +52,11 @@ async def async_setup_entry(
     schedule_coord: ScheduleCoordinator = hass.data[DOMAIN][entry.entry_id]["schedule"]
     standings_coord: StandingsCoordinator = hass.data[DOMAIN][entry.entry_id]["standings"]
     results_coord: ResultsCoordinator   = hass.data[DOMAIN][entry.entry_id]["results"]
+    weather_coord: WeatherCoordinator   = hass.data[DOMAIN][entry.entry_id]["weather"]
 
     entities: list[SensorEntity] = []
     entities.extend(SupercarsSensor(timing_coord, d) for d in TIMING_SENSOR_DESCRIPTIONS)
+    entities.append(SupercarsAirTempSensor(weather_coord))
     entities.append(SupercarsNewsSensor(news_coord))
     entities.append(SupercarsStandingsSensor(standings_coord, "driver", "Driver Standings", "mdi:account-group"))
     entities.append(SupercarsStandingsSensor(standings_coord, "team", "Team Standings", "mdi:account-group"))
@@ -106,6 +107,36 @@ class SupercarsSensor(CoordinatorEntity, SensorEntity):
     @property
     def available(self) -> bool:
         return self.coordinator.last_update_success and self.coordinator.data is not None
+
+
+# ── Air temperature sensor (Open-Meteo, current event venue) ──────────────────
+
+class SupercarsAirTempSensor(CoordinatorEntity, SensorEntity):
+    _attr_unique_id = f"{DOMAIN}_weather_temp"
+    _attr_name = "Supercars Air Temperature"
+    _attr_icon = "mdi:thermometer"
+    _attr_native_unit_of_measurement = "°C"
+    _attr_device_class = "temperature"
+
+    def __init__(self, coordinator: WeatherCoordinator) -> None:
+        super().__init__(coordinator)
+
+    @property
+    def native_value(self):
+        return self.coordinator.data.get("air_temp")
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        data = self.coordinator.data
+        return {"venue": data.get("venue"), "source": data.get("source")}
+
+    @property
+    def available(self) -> bool:
+        return (
+            self.coordinator.last_update_success
+            and self.coordinator.data is not None
+            and self.coordinator.data.get("air_temp") is not None
+        )
 
 
 # ── Standings sensors ─────────────────────────────────────────────────────────
