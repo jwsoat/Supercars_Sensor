@@ -17,7 +17,7 @@ SCAN_INTERVAL_IDLE = 60
 STREAM_URL = "https://supercars.fm"
 STREAM_NOTE = "Available at-circuit only"
 
-# Session state values from Natsoft
+# Session state values from Natsoft (the feed's <S S="..."> attribute)
 SESSION_STATES = {
     "Green": "green_flag",
     "Yellow": "yellow_flag",
@@ -26,8 +26,14 @@ SESSION_STATES = {
     "Red": "red_flag",
     "Chequered": "chequered_flag",
     "Paused": "paused",
+    "Ended": "ended",
     "Inactive": "inactive",
 }
+
+# Flag states that mean no session is actively running. A finished race sends
+# "Ended", and between events the feed reports "Inactive"; either way we retain
+# the last data but stop treating the session as live.
+INACTIVE_FLAGS = frozenset({None, "", "Inactive", "Ended"})
 
 # Sensor unique ID suffixes
 SENSOR_SESSION = "session"

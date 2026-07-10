@@ -30,6 +30,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
     DOMAIN,
+    INACTIVE_FLAGS,
     NATSOFT_URL,
     STREAM_URL,
     STREAM_NOTE,
@@ -209,7 +210,7 @@ class NatsoftCoordinator(DataUpdateCoordinator):
     def _build_data(self) -> dict[str, Any]:
         flag_raw = self._flag_state_raw
         data: dict[str, Any] = {
-            "session_active": bool(flag_raw) and flag_raw != "Inactive",
+            "session_active": flag_raw not in INACTIVE_FLAGS,
             "session_name": self._event_name,
             "round_name": self._meeting_name,
             "flag_state": SESSION_STATES.get(flag_raw, (flag_raw or "inactive").lower()),
