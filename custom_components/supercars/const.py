@@ -3,8 +3,10 @@
 DOMAIN = "supercars"
 DEFAULT_NAME = "Supercars"
 
-# Natsoft live timing endpoint
-NATSOFT_URL = "http://server.natsoft.com.au:8080/LiveMeeting/V8SUPER"
+# Natsoft live timing endpoint — a websocket feed, not a plain HTTP resource.
+# "V8SUPER" is a standing channel name for the whole category (it does not
+# change per event/round; confirmed live against the current meeting).
+NATSOFT_URL = "ws://server.natsoft.com.au:8080/LiveMeeting/V8SUPER"
 
 # How often to poll when a session is active (seconds)
 SCAN_INTERVAL_ACTIVE = 5

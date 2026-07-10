@@ -47,6 +47,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok:
         coordinators = hass.data[DOMAIN].pop(entry.entry_id)
         for coord in coordinators.values():
+            # NatsoftCoordinator overrides this to also stop its background
+            # websocket listener task; other coordinators inherit a no-op.
+            await coord.async_shutdown()
             if hasattr(coord, "_session") and coord._session and not coord._session.closed:
                 await coord._session.close()
     return unload_ok
