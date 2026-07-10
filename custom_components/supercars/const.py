@@ -13,6 +13,11 @@ SCAN_INTERVAL_ACTIVE = 5
 # How often to poll when no session is detected (seconds)
 SCAN_INTERVAL_IDLE = 60
 
+# After a race finishes (flag -> "Ended"), supercars.com takes a little while
+# to publish updated championship points. Wait this long, then re-scrape
+# standings and results so they reflect the just-completed race.
+POST_RACE_REFRESH_DELAY = 900  # 15 minutes
+
 # Stream link (geo-locked, for at-circuit use only)
 STREAM_URL = "https://supercars.fm"
 STREAM_NOTE = "Available at-circuit only"
