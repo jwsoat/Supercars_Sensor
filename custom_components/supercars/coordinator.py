@@ -84,6 +84,10 @@ class NatsoftCoordinator(DataUpdateCoordinator):
         self._total_laps: int | None = None
         self._laps_remaining: int | None = None
         self._flag_state_raw: str | None = None
+        # True once any real timing message has been received this run. Stays
+        # True: the coordinator keeps the last values in memory, so sensors can
+        # tell "we have (last-known) data" from "never connected this run".
+        self._has_live_data = False
 
         self._data = self._build_data()
 
@@ -143,6 +147,7 @@ class NatsoftCoordinator(DataUpdateCoordinator):
         else:
             return  # G (grid/safety-car) and A (fastest-lap alert) not surfaced
 
+        self._has_live_data = True
         self._data = self._build_data()
         self.async_set_updated_data(self._data)
 
@@ -210,6 +215,7 @@ class NatsoftCoordinator(DataUpdateCoordinator):
     def _build_data(self) -> dict[str, Any]:
         flag_raw = self._flag_state_raw
         data: dict[str, Any] = {
+            "has_live_data": self._has_live_data,
             "session_active": flag_raw not in INACTIVE_FLAGS,
             "session_name": self._event_name,
             "round_name": self._meeting_name,

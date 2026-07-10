@@ -415,6 +415,7 @@ class ScheduleCoordinator(DataUpdateCoordinator):
                 "event": None,
                 "round": None,
                 "venue": None,
+                "event_in_progress": False,
                 "schedule_source": None,
                 "sessions_remaining": 0,
                 "all_sessions": [],
@@ -466,12 +467,18 @@ class ScheduleCoordinator(DataUpdateCoordinator):
                         raise UpdateFailed(f"Schedule fetch failed: {err}") from err
                     # Fall through with stale cache
 
+        today = now.date()
+        event_in_progress = (
+            datetime(*event["start"]).date() <= today <= datetime(*event["end"]).date()
+        )
+
         local_now = now.astimezone(ZoneInfo(event["tz"]))
         data = _countdown_data(self._cached_sessions, local_now)
         data.update({
             "event":           event["name"],
             "round":           f"Round {event['round']}",
             "venue":           event["venue"],
+            "event_in_progress": event_in_progress,
             "schedule_source": _schedule_url(event["slug"]),
             "event_slug":      event["slug"],
         })
