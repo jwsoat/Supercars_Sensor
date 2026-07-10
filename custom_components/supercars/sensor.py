@@ -216,7 +216,7 @@ class SupercarsNewsSensor(CoordinatorEntity, SensorEntity):
 # ── Schedule countdown sensor ─────────────────────────────────────────────────
 
 def _fmt_countdown(seconds: int | None) -> str | None:
-    """Convert seconds to human-readable H:MM:SS or D days H:MM."""
+    """Convert seconds to human-readable "Dd Hh Mm Ss" (labelled units)."""
     if seconds is None:
         return None
     if seconds <= 0:
@@ -225,8 +225,8 @@ def _fmt_countdown(seconds: int | None) -> str | None:
     hours, rem = divmod(rem, 3600)
     mins, secs = divmod(rem, 60)
     if days > 0:
-        return f"{days}d {hours}h {mins:02d}m"
-    return f"{hours}:{mins:02d}:{secs:02d}"
+        return f"{days}d {hours}h {mins:02d}m {secs:02d}s"
+    return f"{hours}h {mins:02d}m {secs:02d}s"
 
 
 class SupercarsCountdownSensor(CoordinatorEntity, SensorEntity):
